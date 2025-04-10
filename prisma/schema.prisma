@@ -18,3 +18,33 @@ model Post {
 
     @@index([name])
 }
+model User {
+    id String @id @default(cuid())
+    email String @unique
+    emailVerified DateTime? @map("email_verified")
+    name String?
+    password String  // will be hashed
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+    sessions Session[]
+    verificationsTokens VerificationsToken[]
+
+}
+model Session {
+    id String @id @default(cuid())
+    userId String @map("user_id")
+    user User @relation(fields: [userId], references: [id])
+    expiresAt DateTime @map("expires_at")
+    createdAt DateTime @default(now()) @map("created_at")
+    sessionToken String @unique @map("session_token")
+    @@map("sessions")
+}
+model VerificationsToken {
+    identifier String 
+    token String @unique
+    expires DateTime
+    userId String? @map("user_id")
+    user User? @relation(fields: [userId], references: [id])
+    @@id([identifier, token])
+    @@map("verifications_tokens")
+}
