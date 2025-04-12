@@ -24,6 +24,7 @@ model User {
     emailVerified DateTime? @map("email_verified")
     name String?
     password String  // will be hashed
+    salt String  //For custom hashing 
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
     sessions Session[]
