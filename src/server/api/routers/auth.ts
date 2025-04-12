@@ -117,5 +117,60 @@ export const AuthRouter =createTRPCRouter({
                 email:existingUser.email
             }
         }
+    }),
+    // logout procedure 
+    logout :publicProcedure
+    .mutation(async({ctx})=>{
+        // Get the session token from the cookie
+        const sessionToken = (await cookies()).get('session-token')
+        if(!sessionToken) return {seccess:true}
+        // Delete the session from the database
+        await db.session.deleteMany({
+            where:{
+                sessionToken:sessionToken.value
+            }
+        })
+        // Clear the cookie 
+        ;(await cookies()).delete('session-token')
+        return{
+            success:true
+        }
+    }),
+    // get session procedure
+    getSession :publicProcedure
+    .query(async({ctx})=>{
+        // Get the session token from the cookie
+        const sessionToken = (await cookies()).get('session-token')
+        if(!sessionToken) return {user:null}
+        //⁡⁣⁣⁢ Get the session from the database⁡
+        const session = await db.session.findUnique({
+            where:{
+                sessionToken:sessionToken.value
+            },
+            include:{
+                user:true
+            }
+        })
+        if(!session || new Date(session.expiresAt) <new Date()){
+            (await cookies()).delete('session-token')
+            return {user:null}
+        }
+        return{
+            user:{
+                id:session.user.id,
+                email:session.user.email,
+                name:session.user.name
+            }
+        }
     })
 })
+
+
+
+
+// if(!sessionToken){
+//     throw new TRPCError({
+//         code:'UNAUTHORIZED',
+//         message:'Not logged in'
+//     })
+// }
