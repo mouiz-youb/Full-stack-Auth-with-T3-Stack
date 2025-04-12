@@ -168,9 +168,3 @@ export const AuthRouter =createTRPCRouter({
 
 
 
-// if(!sessionToken){
-//     throw new TRPCError({
-//         code:'UNAUTHORIZED',
-//         message:'Not logged in'
-//     })
-// }
