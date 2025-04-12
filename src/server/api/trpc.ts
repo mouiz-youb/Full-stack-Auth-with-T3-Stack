@@ -94,7 +94,7 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
 
   return result;
-});
+});  
 
 /**
  * Public (unauthenticated) procedure
