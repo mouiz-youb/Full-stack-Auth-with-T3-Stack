@@ -6,7 +6,7 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -14,6 +14,7 @@ import { db } from "@/server/db";
 
 //the  update for this file 
 import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
+import { cookies } from "next/headers";
 /**
  * 1. CONTEXT
  *
@@ -26,13 +27,15 @@ import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
+export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   return {
     db,
-    ...opts,
+    req:opts.req,
+    res:opts.res,
+    cookies:cookies(), //add the cookies helper 
   };
 };
-
+ type Context = Awaited<ReturnType<typeof createTRPCContext>>
 /**
  * 2. INITIALIZATION
  *
@@ -73,8 +76,6 @@ export const createCallerFactory = t.createCallerFactory;
  *
  * @see https://trpc.io/docs/router
  */
-export const createTRPCRouter = t.router;
-
 /**
  * Middleware for timing procedure execution and adding an artificial delay in development.
  *
@@ -98,6 +99,38 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   return result;
 });  
 
+// New middleware for the authenticated procedure
+const authMiddleware = t.middleware(async({ctx,next})=>{
+  const sessionToken = (await ctx.cookies).get('sessionToken')?.value;
+  if(!sessionToken){
+    throw new TRPCError({
+      code:'UNAUTHORIZED',
+      message:'You must be logged in to access this resource',
+    })
+  }
+  const sessoin = await ctx.db.session.findUnique({
+    where:{
+      sessionToken
+    },
+    include:{
+      user:true
+    }
+  })
+  if(!sessoin || new Date(sessoin.expiresAt)<new Date()){
+    (await ctx.cookies).delete('sessionToken');
+    throw new TRPCError({
+      code:'UNAUTHORIZED',
+      message:'You must be logged in to access this resource',
+    })
+  }
+  return next({
+    ctx:{
+      ...ctx,
+      user:sessoin.user, //add the user  to the context
+    }
+  })
+})
+// PROCEDURES
 /**
  * Public (unauthenticated) procedure
  *
@@ -106,3 +139,9 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * are logged in.
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
+export const createCallerFatory = t.createCallerFactory;
+export const middleware = t.middleware;
+export const protectedProcedure =t.procedure
+  .use(timingMiddleware)
+  .use(authMiddleware); //add the auth middleware to the protected procedure
+export const createTRPCRouter = t.router;

@@ -25,11 +25,13 @@ model User {
     name String?
     password String  // will be hashed
     salt String  //For custom hashing 
+    role String @default("user") // user, admin
+    isActive Boolean @default(true)
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
     sessions Session[]
     verificationsTokens VerificationsToken[]
-
+    @@index([emailVerified])
 }
 model Session {
     id String @id @default(cuid())
@@ -39,12 +41,14 @@ model Session {
     createdAt DateTime @default(now()) @map("created_at")
     sessionToken String @unique @map("session_token")
     @@map("sessions")
+    @@index([expiresAt])
 }
 model VerificationsToken {
     identifier String 
     token String @unique
     expires DateTime
     userId String? @map("user_id")
+    type String  // "email_verification" or "password_reset"
     user User? @relation(fields: [userId], references: [id])
     @@id([identifier, token])
     @@map("verifications_tokens")
