@@ -14,6 +14,7 @@ function page() {
             <input placeholder='Enter the User Password  ' className='p-3 shadow-2xl text-xl text-center rounded-2xl ' type="password" />
             <button type="submit" className='flex justify-center items-center bg-black text-white w-1/2 p-3 rounded-2xl text-2xl'>Sign up</button>
         </form>
+      
     </div>
   )
 }
